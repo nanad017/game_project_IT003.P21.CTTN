@@ -25,6 +25,27 @@ VELOCITY = 3
 ROTATE_SPEED = 5
 SHOOT_COOLDOWN = 0.5
 class Enemy:
+    """
+    Lớp Enemy đại diện cho đối tượng kẻ địch trong trò chơi.
+    
+    Thuộc tính:
+        image_original: Hình ảnh gốc của kẻ địch
+        image: Hình ảnh sau khi xoay
+        rect: Hình chữ nhật bao quanh kẻ địch
+        grid: Lưới dùng để di chuyển
+        cell_size: Kích thước mỗi ô trong lưới
+        angle: Góc quay hiện tại của kẻ địch
+        speed: Tốc độ di chuyển của kẻ địch
+        path: Đường đi tới mục tiêu
+        grid_x, grid_y: Vị trí trong lưới
+        target_player: Người chơi đang được nhắm tới
+        detection_range: Phạm vi phát hiện người chơi
+        last_attack_time: Thời điểm tấn công gần nhất
+        target_x, target_y: Vị trí đích
+        moving: Trạng thái đang di chuyển
+        move_timer: Bộ đếm thời gian di chuyển
+        path_update_timer: Bộ đếm thời gian cập nhật đường đi
+    """
     def __init__(self, x, y, grid, cell_size=53):
           
         self.image_original = pygame.Surface((10, 10), pygame.SRCALPHA)
@@ -51,12 +72,38 @@ class Enemy:
         self.path_update_timer = 0
 
     def draw(self, screen): 
+        """
+        Vẽ kẻ địch lên màn hình.
+        
+        Tham số:
+            screen: Đối tượng Surface của pygame để vẽ lên
+        """
         screen.blit(self.image, self.rect)
 
     def heuristic(self, a, b): 
+        """
+        Tính toán hàm heuristic cho thuật toán A* dựa trên khoảng cách.
+        
+        Tham số:
+            a: Điểm bắt đầu (x, y)
+            b: Điểm kết thúc (x, y)
+            
+        Trả về:
+            Khoảng cách Euclid giữa hai điểm
+        """
         return math.hypot(a[0] - b[0], a[1] - b[1])
 
     def astar(self, start, end):
+        """
+        Thuật toán A* để tìm đường đi từ điểm bắt đầu đến điểm kết thúc.
+        
+        Tham số:
+            start: Điểm bắt đầu (x, y)
+            end: Điểm kết thúc (x, y)
+            
+        Trả về:
+            Danh sách các điểm tạo thành đường đi
+        """
         heap = []
         heapq.heappush(heap, (0, start))
         came_from = {}
@@ -94,10 +141,27 @@ class Enemy:
         path.reverse()
         return path
     def check_bullet_collision(self, bullet):
+        """
+        Kiểm tra va chạm giữa kẻ địch và đạn.
+        
+        Tham số:
+            bullet: Đối tượng đạn cần kiểm tra
+            
+        Trả về:
+            True nếu có va chạm, ngược lại False
+        """
         bullet_rect = bullet.get_rect()
         return self.rect.colliderect(bullet_rect)
     def find_nearest_player(self, players):
-        """Tìm người chơi gần nhất trong phạm vi phát hiện"""
+        """
+        Tìm người chơi gần nhất trong phạm vi phát hiện.
+        
+        Tham số:
+            players: Danh sách người chơi
+            
+        Trả về:
+            Đối tượng người chơi gần nhất hoặc None nếu không có ai trong tầm
+        """
         nearest_player = None
         min_distance = self.detection_range
         
@@ -114,7 +178,12 @@ class Enemy:
         return nearest_player
 
     def update_target_and_path(self, players):
-        """Cập nhật mục tiêu và đường đi tới người chơi gần nhất"""
+        """
+        Cập nhật mục tiêu và đường đi tới người chơi gần nhất.
+        
+        Tham số:
+            players: Danh sách người chơi
+        """
         self.target_player = self.find_nearest_player(players)
         
         if self.target_player:
@@ -126,6 +195,9 @@ class Enemy:
             self.path = self.astar(start_cell, target_cell)
 
     def move_along_path(self):
+        """
+        Di chuyển kẻ địch theo đường đi đã tính toán.
+        """
         if not self.moving and self.path:
             # Bắt đầu di chuyển tới ô tiếp theo
             next_cell = self.path.pop(0)
@@ -161,7 +233,15 @@ class Enemy:
                 self.moving = False
     
     def check_collision_with_players(self, players):
-        """Kiểm tra va chạm với người chơi và gây sát thương"""
+        """
+        Kiểm tra va chạm với người chơi và gây sát thương.
+        
+        Tham số:
+            players: Danh sách người chơi
+            
+        Trả về:
+            True nếu có va chạm, ngược lại False
+        """
         current_time = pygame.time.get_ticks()
         
         for player in players:
@@ -173,6 +253,12 @@ class Enemy:
         return False
 
     def update(self, players):
+        """
+        Cập nhật trạng thái của kẻ địch.
+        
+        Tham số:
+            players: Danh sách người chơi
+        """
         current_time = pygame.time.get_ticks()
         if current_time - self.path_update_timer > 400:
             self.update_target_and_path(players)
@@ -185,15 +271,35 @@ class Enemy:
         self.check_collision_with_players(players)
 
 class EnemyManager:
+    """
+    Lớp quản lý kẻ địch trong trò chơi.
+    
+    Thuộc tính:
+        grid: Lưới dùng để di chuyển
+        cell_size: Kích thước mỗi ô trong lưới
+        enemies: Danh sách các kẻ địch đang hoạt động
+        spawn_timer: Bộ đếm thời gian sinh kẻ địch
+        spawn_interval: Khoảng thời gian giữa các lần sinh kẻ địch
+        max_enemies: Số lượng kẻ địch tối đa
+    """
     def __init__(self, grid, cell_size=53):
         self.grid = grid
         self.cell_size = cell_size
         self.enemies = []
         # Spawn settings
         self.spawn_timer = 0
-        self.spawn_interval = 5000  #
+        self.spawn_interval = 5000  # Khoảng thời gian giữa các lần sinh kẻ địch
         self.max_enemies = 10
     def check_bullets_hit(self, players):
+        """
+        Kiểm tra đạn bắn trúng kẻ địch.
+        
+        Tham số:
+            players: Danh sách người chơi
+            
+        Trả về:
+            True nếu có va chạm, ngược lại False
+        """
         for enemy in self.enemies[:]: 
             for player in players:
                 for bullet in player.bullets[:]:  # Duyệt qua đạn
@@ -213,7 +319,16 @@ class EnemyManager:
                     return True
         return False
     def find_spawn_position(self, players=None, min_distance=100):
-        """Tìm vị trí spawn ngẫu nhiên xa người chơi"""
+        """
+        Tìm vị trí sinh kẻ địch ngẫu nhiên xa người chơi.
+        
+        Tham số:
+            players: Danh sách người chơi
+            min_distance: Khoảng cách tối thiểu với người chơi
+            
+        Trả về:
+            Tọa độ (x, y) để sinh kẻ địch hoặc None nếu không tìm được
+        """
         empty_cells = []
         
         for y in range(len(self.grid)):
@@ -253,7 +368,12 @@ class EnemyManager:
         return None
     
     def spawn_enemy(self, players):
-        """Spawn enemy mới"""
+        """
+        Sinh kẻ địch mới.
+        
+        Tham số:
+            players: Danh sách người chơi
+        """
         if len(self.enemies) >= self.max_enemies:
             return
         
@@ -264,11 +384,22 @@ class EnemyManager:
             self.enemies.append(new_enemy)
     
     def remove_enemy(self, enemy):
-        """Xóa enemy khỏi danh sách"""
+        """
+        Xóa kẻ địch khỏi danh sách.
+        
+        Tham số:
+            enemy: Đối tượng kẻ địch cần xóa
+        """
         if enemy in self.enemies:
             self.enemies.remove(enemy)
     
     def update(self, players):
+        """
+        Cập nhật trạng thái của tất cả kẻ địch.
+        
+        Tham số:
+            players: Danh sách người chơi
+        """
         current_time = pygame.time.get_ticks()
         
         # Kiểm tra va chạm giữa đạn và enemy
@@ -283,13 +414,29 @@ class EnemyManager:
             enemy.update(players)
     
     def draw(self, screen):
-        """Vẽ tất cả enemies"""
+        """
+        Vẽ tất cả kẻ địch lên màn hình.
+        
+        Tham số:
+            screen: Đối tượng Surface của pygame để vẽ lên
+        """
         for enemy in self.enemies:
             enemy.draw(screen) 
     def clear_all_enemies(self):
-        """Xóa tất cả enemies"""
+        """
+        Xóa tất cả kẻ địch.
+        """
         self.enemies.clear()    
 class Bullet:
+    """
+    Lớp Bullet đại diện cho đạn trong trò chơi.
+    
+    Thuộc tính:
+        x, y: Tọa độ hiện tại của đạn
+        dx, dy: Vector hướng đạn
+        creation_time: Thời điểm tạo đạn
+        lifetime: Thời gian tồn tại tối đa của đạn
+    """
     def __init__(self, x, y, dx, dy):
         self.x = x
         self.y = y
@@ -299,10 +446,19 @@ class Bullet:
         self.lifetime = 5.0
 
     def move(self):
+        """
+        Di chuyển đạn theo hướng và tốc độ đã định.
+        """
         self.x += self.dx * BULLET_SPEED
         self.y += self.dy * BULLET_SPEED
 
     def get_rect(self):
+        """
+        Lấy hình chữ nhật bao quanh đạn.
+        
+        Trả về:
+            Đối tượng pygame.Rect
+        """
         return pygame.Rect(
             self.x - BULLET_RADIUS, 
             self.y - BULLET_RADIUS, 
@@ -311,12 +467,33 @@ class Bullet:
         )
 
     def is_off_screen(self):
+        """
+        Kiểm tra đạn đã ra khỏi màn hình chưa.
+        
+        Trả về:
+            True nếu đạn đã ra khỏi màn hình, ngược lại False
+        """
         return not (0 <= self.x <= WIDTH and 0 <= self.y <= HEIGHT)
 
     def is_expired(self, current_time):
+        """
+        Kiểm tra đạn đã hết thời gian tồn tại chưa.
+        
+        Tham số:
+            current_time: Thời gian hiện tại
+            
+        Trả về:
+            True nếu đạn đã hết thời gian tồn tại, ngược lại False
+        """
         return current_time - self.creation_time > self.lifetime
 
     def bounce(self, wall_rect):
+        """
+        Xử lý đạn nảy khi va chạm với tường.
+        
+        Tham số:
+            wall_rect: Hình chữ nhật của tường
+        """
         # Xác định va chạm và đổi hướng đạn
         bullet_rect = self.get_rect()
         
@@ -344,7 +521,6 @@ class Bullet:
         magnitude = math.sqrt(self.dx * self.dx + self.dy * self.dy)
         self.dx /= magnitude
         self.dy /= magnitude
-
 class Wall:
     def __init__(self, x, y, width, height, color=BLACK):
         self.rect = pygame.Rect(x, y, width, height)
@@ -407,12 +583,41 @@ class Wall:
         ]
 
         # Loại bỏ tường tại và xung quanh điểm spawn
-        walls = [wall for wall in walls if not any(safe_zone.colliderect(wall.rect) for safe_zone in safe_zones)]
+        # walls = [wall for wall in walls if not any(safe_zone.colliderect(wall.rect) for safe_zone in safe_zones)]
 
         return walls, spawn_points,grid
 
 class Tank:
+    """
+    Đại diện cho một xe tăng trong trò chơi Tank Battle.
+    
+    Class này quản lý các chức năng chính của xe tăng như di chuyển, xoay, bắn đạn và 
+    kiểm tra va chạm với các vật thể khác trong trò chơi.
+    
+    Thuộc tính:
+        image_original (pygame.Surface): Hình ảnh gốc của xe tăng.
+        image (pygame.Surface): Hình ảnh hiện tại của xe tăng (đã xoay).
+        rect (pygame.Rect): Hình chữ nhật biểu diễn vị trí và kích thước của xe tăng.
+        controls (dict): Các phím điều khiển của xe tăng.
+        bullets (list): Danh sách các viên đạn hiện có của xe tăng.
+        score (int): Điểm số hiện tại của xe tăng.
+        last_shot (float): Thời điểm bắn viên đạn cuối cùng.
+        angle (float): Góc xoay hiện tại của xe tăng (0 là hướng lên trên).
+        max_bullets (int): Số lượng đạn tối đa có thể bắn cùng lúc.
+        color (tuple): Màu sắc của xe tăng.
+        direction (int): Hướng di chuyển của xe tăng (0 là hướng lên trên).
+    """
     def __init__(self, x, y, color, controls):
+        """
+        Khởi tạo một xe tăng mới.
+        
+        Tham số:
+            x (int): Tọa độ x ban đầu của xe tăng.
+            y (int): Tọa độ y ban đầu của xe tăng.
+            color (tuple): Màu sắc của xe tăng, quyết định hình ảnh được sử dụng.
+            controls (dict): Từ điển chứa phím điều khiển cho xe tăng 
+                             (lên, xuống, trái, phải, bắn).
+        """
         if color == RED:
             self.image_original = pygame.image.load('tank1.png').convert_alpha()
         else :
@@ -429,6 +634,15 @@ class Tank:
         self.direction = 0  # Hướng di chuyển (0 là hướng lên trên)
 
     def draw(self, window):
+        """
+        Vẽ xe tăng và các viên đạn của nó lên cửa sổ trò chơi.
+        
+        Phương thức này xoay hình ảnh xe tăng theo góc hiện tại, vẽ nòng súng
+        và hiển thị tất cả các viên đạn hiện có của xe tăng.
+        
+        Tham số:
+            window (pygame.Surface): Cửa sổ nơi xe tăng sẽ được vẽ.
+        """
         # Xoay xe tăng theo góc hiện tại
         self.image = pygame.transform.rotate(self.image_original, +self.angle)
         self.rect = self.image.get_rect(center=self.rect.center)
@@ -449,6 +663,17 @@ class Tank:
             pygame.draw.circle(window, BLACK, (int(bullet.x), int(bullet.y)), BULLET_RADIUS)
 
     def move(self, keys_pressed, walls, other_tank):
+        """
+        Di chuyển xe tăng dựa trên phím được nhấn và xử lý va chạm.
+        
+        Phương thức này xử lý xoay xe tăng, tính toán vector di chuyển và kiểm tra
+        va chạm với tường và xe tăng khác trước khi thực hiện di chuyển.
+        
+        Tham số:
+            keys_pressed (pygame.key.ScancodeWrapper): Trạng thái hiện tại của bàn phím.
+            walls (list): Danh sách các bức tường trong trò chơi.
+            other_tank (Tank): Xe tăng khác để kiểm tra va chạm.
+        """
         # Xoay xe
         if keys_pressed[self.controls["left"]]:
             self.angle += ROTATE_SPEED
@@ -501,6 +726,20 @@ class Tank:
             self.rect.y += dy
 
     def shoot(self, current_time,shoot_sound):
+        """
+        Bắn đạn từ xe tăng nếu thỏa mãn điều kiện.
+        
+        Phương thức này tạo một viên đạn mới từ vị trí hiện tại của xe tăng
+        theo hướng hiện tại, nếu chưa đạt giới hạn số lượng đạn tối đa và
+        thời gian hồi đã đủ.
+        
+        Tham số:
+            current_time (float): Thời gian hiện tại để kiểm tra thời gian hồi.
+            shoot_sound (pygame.mixer.Sound): Âm thanh khi bắn đạn.
+            
+        Trả về:
+            bool: True nếu bắn đạn thành công, False nếu không.
+        """
         if current_time - self.last_shot < SHOOT_COOLDOWN:
             return False
         
@@ -525,6 +764,7 @@ class Tank:
         self.rect.center = (x, y)
 
 def draw_start_screen(window, font):
+    """Thiết lập màn hình bắt đầu"""
     window.fill(WHITE)
     background_image = pygame.image.load("tank_battle.png")
     background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
