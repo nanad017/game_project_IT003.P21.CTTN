@@ -1,12 +1,16 @@
 import pygame
+import os
 import math
 import heapq
 import random
 import sys
 import time
+base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+shot_path = os.path.join(base_path, "sound", "shot.mp3")
+gun_path = os.path.join(base_path, "sound", "gun.mp3")
 pygame.mixer.init()
-shot_sound = pygame.mixer.Sound("shot.mp3")
-gun_sound = pygame.mixer.Sound("gun.mp3")
+shot_sound = pygame.mixer.Sound(shot_path)
+gun_sound = pygame.mixer.Sound(gun_path)
 # Game Configuration
 WIDTH, HEIGHT = 800, 600
 FPS = 60
@@ -618,10 +622,12 @@ class Tank:
             controls (dict): Từ điển chứa phím điều khiển cho xe tăng 
                              (lên, xuống, trái, phải, bắn).
         """
+        tank1 = os.path.join(base_path, "image", "tank1.png")
+        tank2 = os.path.join(base_path, "image", "tank2.png")
         if color == RED:
-            self.image_original = pygame.image.load('tank1.png').convert_alpha()
+            self.image_original = pygame.image.load(tank1).convert_alpha()
         else :
-            self.image_original = pygame.image.load('tank2.png').convert_alpha()
+            self.image_original = pygame.image.load(tank2).convert_alpha()
         self.image = self.image_original.copy()
         self.rect = self.image.get_rect(center=(x, y))
         self.controls = controls
@@ -766,7 +772,8 @@ class Tank:
 def draw_start_screen(window, font):
     """Thiết lập màn hình bắt đầu"""
     window.fill(WHITE)
-    background_image = pygame.image.load("tank_battle.png")
+    anh = os.path.join(base_path, "image", "tank_battle.png")
+    background_image = pygame.image.load(anh)
     background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
     window.blit(background_image, (0, 0))   
     pygame.display.update()
